@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curriculum Vitae</title>
+    <style>
+        /* Reset and Base Styles */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #111111; /* Dark text */
+            --secondary-text: #666666;
+            --accent-color: #000000;
+            --border-color: #e0e0e0;
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            --font-serif: "Georgia", "Times New Roman", Times, serif;
+            --max-width: 800px;
+            --spacing: 1.5rem;
+        }
+
+        * {
+            box_sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main); /* Sans-serif for body */
+            background-color: var(--bg-color); /* White bg */
+            color: var(--text-color); /* Dark text */
+            line-height: 1.6;
+            padding: var(--spacing);
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 2rem 0;
+        }
+
+        /* Typography */
+        h1, h2, h3 {
+            font-family: var(--font-serif); /* Serif for headers */
+            font-weight: 600;
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: 0.9rem;
+            margin-top: 2.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--secondary-text);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-color);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+
+        a {
+            color: var(--text-color);
+            text-decoration: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 3px;
+        }
+
+        a:hover {
+            color: var(--accent-color);
+            text-decoration-thickness: 2px;
+        }
+
+        .meta {
+            font-size: 0.9rem;
+            color: var(--secondary-text);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Section Specifics */
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .item {
+            margin-bottom: 1.5rem;
+        }
+
+        .item:last-child {
+            margin-bottom: 0;
+        }
+
+        .work-title {
+            font-weight: 600;
+            /* display: block;  removed block to work inside summary properly */
+            margin-bottom: 0.25rem;
+        }
+
+        .biography-content {
+            white-space: pre-wrap;
+        }
+
+        /* Details/Summary styling */
+        details {
+            margin-bottom: 1.5rem;
+        }
+
+        details > summary {
+            cursor: pointer;
+            list-style: none; /* Hide default marker */
+        }
+
+        /* Custom marker or native? User said native.
+           But usually native marker is to the left.
+           I'll keep it simple. If I want exactly native, I remove list-style: none.
+           However, to ensure it looks good with the title, I'll keep the marker but style it slightly?
+           Actually, the user said "native <details>/<summary>".
+           I will remove `list-style: none` to respect "native".
+        */
+        details > summary {
+            list-style: revert;
+        }
+
+        details[open] > summary {
+             margin-bottom: 0.5rem;
+        }
+
+        .abstract-content {
+            font-size: 0.95rem;
+            padding: 0.5rem 0 0.5rem 1rem;
+            border-left: 2px solid var(--border-color);
+            margin-top: 0.5rem;
+            color: var(--secondary-text);
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--secondary-text);
+            padding: 2rem;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .container {
+                padding: 1rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="app">
+    <div class="loading">Loading curriculum vitae...</div>
+</div>
+
+<script>
+    const ORCID_ID = '0009-0002-1054-3167';
+    const API_BASE = 'https://pub.orcid.org/v3.0';
+
+    async function fetchRecord() {
+        try {
+            const response = await fetch(`${API_BASE}/${ORCID_ID}/record`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            render(data);
+        } catch (error) {
+            console.error('Error fetching ORCID record:', error);
+            document.getElementById('app').innerHTML = `<div class="error">Failed to load data. Please try again later.</div>`;
+        }
+    }
+
+    function render(data) {
+        const app = document.getElementById('app');
+        app.innerHTML = '';
+
+        const person = data['person'] || {};
+        const activities = data['activities-summary'] || {};
+
+        // Name
+        const nameData = person['name'] || {};
+        let name = nameData['credit-name'] && nameData['credit-name']['value'];
+        if (!name) {
+            const given = (nameData['given-names'] && nameData['given-names']['value']) || '';
+            const family = (nameData['family-name'] && nameData['family-name']['value']) || '';
+            name = `${given} ${family}`.trim();
+        }
+
+        // Header
+        const header = document.createElement('header');
+        header.className = 'section';
+        header.innerHTML = `
+            <h1>${escapeHtml(name)}</h1>
+            <p class="meta">ORCID: <a href="https://orcid.org/${ORCID_ID}" target="_blank">${ORCID_ID}</a></p>
+        `;
+        app.appendChild(header);
+
+        // Update document title
+        document.title = `${name} - Curriculum Vitae`;
+
+        // Biography
+        const bioContent = (person['biography'] && person['biography']['content']) || 'No biography available.';
+        const bioSection = document.createElement('section');
+        bioSection.className = 'section';
+        bioSection.innerHTML = `
+            <h2>Biography</h2>
+            <div class="content biography-content"><p>${escapeHtml(bioContent)}</p></div>
+        `;
+        app.appendChild(bioSection);
+
+        // Education
+        const educations = [];
+        const eduGroups = (activities['educations'] && activities['educations']['affiliation-group']) || [];
+        eduGroups.forEach(group => {
+            (group['summaries'] || []).forEach(summary => {
+                if (summary['education-summary']) educations.push(summary['education-summary']);
+            });
+        });
+
+        if (educations.length > 0) {
+            const eduSection = document.createElement('section');
+            eduSection.className = 'section';
+            eduSection.innerHTML = `<h2>Education</h2>`;
+            educations.forEach(edu => {
+                const orgName = edu['organization']['name'];
+                const role = edu['role-title'] || '';
+                const start = (edu['start-date'] && edu['start-date']['year'] && edu['start-date']['year']['value']) || '';
+                const end = (edu['end-date'] && edu['end-date']['year'] && edu['end-date']['year']['value']) || 'Present';
+                const dateRange = start ? `${start} – ${end}` : '';
+
+                const item = document.createElement('div');
+                item.className = 'item';
+                item.innerHTML = `
+                    <h3>${escapeHtml(orgName)}</h3>
+                    <p class="meta">
+                        ${escapeHtml(role)}${role && dateRange ? ' | ' : ''}${escapeHtml(dateRange)}
+                    </p>
+                `;
+                eduSection.appendChild(item);
+            });
+            app.appendChild(eduSection);
+        }
+
+        // Employment
+        const employments = [];
+        const empGroups = (activities['employments'] && activities['employments']['affiliation-group']) || [];
+        empGroups.forEach(group => {
+            (group['summaries'] || []).forEach(summary => {
+                if (summary['employment-summary']) employments.push(summary['employment-summary']);
+            });
+        });
+
+        if (employments.length > 0) {
+            const empSection = document.createElement('section');
+            empSection.className = 'section';
+            empSection.innerHTML = `<h2>Employment</h2>`;
+            employments.forEach(emp => {
+                const orgName = emp['organization']['name'];
+                const role = emp['role-title'] || '';
+                const start = (emp['start-date'] && emp['start-date']['year'] && emp['start-date']['year']['value']) || '';
+                const end = (emp['end-date'] && emp['end-date']['year'] && emp['end-date']['year']['value']) || 'Present';
+                const dateRange = start ? `${start} – ${end}` : '';
+
+                const item = document.createElement('div');
+                item.className = 'item';
+                item.innerHTML = `
+                    <h3>${escapeHtml(orgName)}</h3>
+                    <p class="meta">
+                        ${escapeHtml(role)}${role && dateRange ? ' | ' : ''}${escapeHtml(dateRange)}
+                    </p>
+                `;
+                empSection.appendChild(item);
+            });
+            app.appendChild(empSection);
+        }
+
+        // Works
+        const works = (activities['works'] && activities['works']['group']) || [];
+        if (works.length > 0) {
+            const workSection = document.createElement('section');
+            workSection.className = 'section';
+            workSection.innerHTML = `<h2>Works</h2>`;
+
+            works.forEach(group => {
+                // Take first work summary
+                const work = group['work-summary'][0];
+                const title = (work['title'] && work['title']['title'] && work['title']['title']['value']) || 'Untitled';
+                const journal = (work['journal-title'] && work['journal-title']['value']) || '';
+                const year = (work['publication-date'] && work['publication-date']['year'] && work['publication-date']['year']['value']) || '';
+                const type = work['type'] ? work['type'].replace(/-/g, ' ') : '';
+                const putCode = work['put-code'];
+                const url = (work['url'] && work['url']['value']) || null;
+
+                // Extract DOI
+                let doiUrl = null;
+                if (work['external-ids'] && work['external-ids']['external-id']) {
+                    const doiId = work['external-ids']['external-id'].find(id => id['external-id-type'] === 'doi');
+                    if (doiId) {
+                         // Check if value is a URL or just ID
+                         const val = doiId['external-id-value'];
+                         if (val.startsWith('http')) {
+                             doiUrl = val;
+                         } else {
+                             doiUrl = `https://doi.org/${val}`;
+                         }
+                    }
+                }
+
+                const metaParts = [];
+                if (journal) metaParts.push(journal);
+                if (year) metaParts.push(year);
+                if (type) metaParts.push(capitalize(type));
+
+                // Details/Summary
+                const details = document.createElement('details');
+                // details.className = 'item'; // Handled by details style
+                details.dataset.putCode = putCode;
+
+                const summary = document.createElement('summary');
+
+                // Construct Title HTML
+                let titleHtml = `<span class="work-title">${escapeHtml(title)}</span>`;
+                if (doiUrl) {
+                    titleHtml = `<a href="${escapeHtml(doiUrl)}" class="work-title" target="_blank">${escapeHtml(title)}</a>`;
+                } else if (url) {
+                    titleHtml = `<a href="${escapeHtml(url)}" class="work-title" target="_blank">${escapeHtml(title)}</a>`;
+                }
+
+                // To allow clicking the link without toggling, we might need to handle click propagation on the link.
+                // But native behavior: clicking a link inside summary follows the link. Clicking elsewhere toggles.
+
+                summary.innerHTML = `
+                    ${titleHtml}
+                    <p class="meta" style="display:inline-block; display: block;">${escapeHtml(metaParts.join(' • '))}</p>
+                `;
+
+                const content = document.createElement('div');
+                content.className = 'abstract-content';
+                content.innerHTML = 'Loading abstract...';
+
+                details.appendChild(summary);
+                details.appendChild(content);
+
+                // Add toggle listener
+                details.addEventListener('toggle', (e) => {
+                    if (details.open && !details.dataset.loaded) {
+                        fetchWorkAbstract(putCode, content, details);
+                    }
+                });
+
+                workSection.appendChild(details);
+            });
+            app.appendChild(workSection);
+        }
+    }
+
+    async function fetchWorkAbstract(putCode, contentElement, detailsElement) {
+        try {
+            const response = await fetch(`${API_BASE}/${ORCID_ID}/work/${putCode}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+
+            // The structure of single work response might be wrapped.
+            // Based on API docs, GET /work/code returns the work object.
+            // Let's handle both unwrapped or bulk-wrapped just in case, but standard is unwrapped.
+
+            let abstract = null;
+            let workData = data;
+
+            if (data['bulk']) {
+                 workData = data['bulk'][0]['work'];
+            } else if (data['group']) {
+                 // Should not happen for single work fetch
+            }
+
+            // Check short-description
+            if (workData['short-description']) {
+                abstract = workData['short-description'];
+            }
+
+            if (!abstract) {
+                abstract = "No abstract available.";
+            }
+
+            contentElement.innerHTML = `<p>${escapeHtml(abstract)}</p>`;
+            detailsElement.dataset.loaded = 'true';
+
+        } catch (error) {
+            console.error('Error fetching work details:', error);
+            contentElement.innerHTML = 'Failed to load abstract.';
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Start
+    fetchRecord();
+
+</script>
+
+</body>
+</html>
